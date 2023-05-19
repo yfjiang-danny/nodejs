@@ -15,6 +15,19 @@ type DetailList = Array<DetailModel>;
 type LoanType = 1 | 2;
 
 /**
+ * 精度计算
+ */
+Number.prototype.format = function (digits: number) {
+  if (typeof digits != "number" && digits < 0) {
+    throw new Error("Params must be a positive integer");
+  }
+  const integer = Math.floor(digits);
+  const v = Math.pow(10, integer);
+
+  return Math.round(this.valueOf() * v) / v;
+};
+
+/**
  * 贷款计算器
  */
 class LoanCalculator {
@@ -26,6 +39,7 @@ class LoanCalculator {
   protected monthlyPay: number = 0;
   protected detail: DetailList = [];
   private detailMap: Map<LoanType, DetailList> = new Map();
+  digits = 0;
 
   constructor() {}
 
@@ -35,14 +49,62 @@ class LoanCalculator {
    * @param {number} yRate 年利率
    * @param {number} year 贷款年限
    * @param {LoanType} type 还款类型，1-等额本息，2-等额本金
+   * @param {number} digits 保留小数位，默认 0
    */
-  init(total = 0, yRate = 0.037, year = 30, type: LoanType = 1) {
+  init(total = 0, yRate = 0.037, year = 30, type: LoanType = 1, digits = 0) {
+    if (total > Number.MAX_VALUE) {
+      throw new Error("");
+    }
     this.total = total;
     this.yRate = yRate;
     this.mRate = yRate / 12;
     this.year = year;
     this.type = type;
+    this.digits = digits;
     this.calculate();
+  }
+
+  /**
+   * 计算等额本息月供、剩余贷款、利息
+   * @returns {DetailList}
+   */
+  protected calculateInType1(): DetailList {
+    var amount = this.total,
+      year = this.year,
+      mRate = this.mRate,
+      monthlyPay = this.monthlyPay,
+      digits = this.digits;
+    var result: DetailList = [],
+      totalInterest = 0;
+    for (let i = 0; i < year * 12; i++) {
+      var interest = (amount * mRate).format(digits);
+      totalInterest += interest;
+      amount -= monthlyPay - interest;
+      result[i] = [monthlyPay, amount, totalInterest];
+    }
+    return result;
+  }
+
+  /**
+   * 计算等额本金月供、剩余贷款、利息
+   * @returns {DetailList}
+   */
+  protected calculateInType2(): DetailList {
+    var amount = this.total,
+      year = this.year,
+      mRate = this.mRate,
+      digits = this.digits,
+      monthlyAvg = (amount / (year * 12)).format(digits);
+    var result: DetailList = [],
+      totalInterest = 0;
+    for (let i = 0; i < year * 12; i++) {
+      var interest = (amount * mRate).format(digits);
+      totalInterest += interest;
+      var monthlyPay = monthlyAvg + interest;
+      amount -= monthlyAvg;
+      result[i] = [monthlyPay, amount, totalInterest];
+    }
+    return result;
   }
 
   /**
@@ -51,12 +113,15 @@ class LoanCalculator {
   private calculate() {
     const total = this.total,
       type = this.type,
-      year = this.year;
+      year = this.year,
+      digits = this.digits;
 
     var mRate = this.mRate;
-    this.monthlyPay =
+    this.monthlyPay = (
       (total * mRate * Math.pow(1 + mRate, year * 12)) /
-      (Math.pow(1 + mRate, year * 12) - 1);
+      (Math.pow(1 + mRate, year * 12) - 1)
+    ).format(digits);
+
     const detail1 = this.calculateInType1();
     const detail2 = this.calculateInType2();
 
@@ -76,7 +141,7 @@ class LoanCalculator {
    */
   setType(type: LoanType) {
     this.type = type;
-    this.calculate();
+    this.detail = this.detailMap.get(type) as DetailList;
   }
 
   /**
@@ -119,57 +184,32 @@ class LoanCalculator {
   }
 
   /**
-   * 获取等额本息的利息
+   * 获取利息
    * @param {number} month n 月后产生的总利息，默认总利息
    */
   getInterest(month?: number) {
     this.checkInitial();
     if (this.detail && this.detail.length > 0) {
       var index = typeof month == "number" ? month - 1 : this.detail.length - 1;
-      var lastItem = this.detail[index];
-      return lastItem ? lastItem[2] : 0;
+      var item = this.detail[index];
+      return item ? item[2] : 0;
     }
+    return 0;
   }
 
   /**
-   * 计算等额本息月供、剩余贷款、利息
-   * @returns {DetailList}
+   * 获取第 n 个月的月供
+   * @param month 月份
+   * @returns
    */
-  protected calculateInType1(): DetailList {
-    var amount = this.total,
-      year = this.year,
-      mRate = this.mRate,
-      monthlyPay = this.monthlyPay;
-    var result: DetailList = [],
-      totalInterest = 0;
-    for (let i = 0; i < year * 12; i++) {
-      var interest = amount * mRate;
-      totalInterest += interest;
-      amount -= monthlyPay - interest;
-      result[i] = [monthlyPay, amount, totalInterest];
+  getMonthlyPay(month: number) {
+    this.checkInitial();
+    if (this.detail && this.detail.length > 0) {
+      var index = month - 1;
+      var item = this.detail[index];
+      return item ? item[0] : 0;
     }
-    return result;
-  }
-
-  /**
-   * 计算等额本金月供、剩余贷款、利息
-   * @returns {DetailList}
-   */
-  protected calculateInType2(): DetailList {
-    var amount = this.total,
-      year = this.year,
-      mRate = this.mRate,
-      monthlyAvg = amount / (year * 12);
-    var result: DetailList = [],
-      totalInterest = 0;
-    for (let i = 0; i < year * 12; i++) {
-      var interest = amount * mRate;
-      totalInterest += interest;
-      var monthlyPay = monthlyAvg + interest;
-      amount -= monthlyAvg;
-      result[i] = [monthlyPay, amount, totalInterest];
-    }
-    return result;
+    return 0;
   }
 
   /**
@@ -193,11 +233,13 @@ class LoanCalculator {
 
   toString() {
     this.checkInitial();
-    var detail = this.detail;
+    var detail = this.detail,
+      digits = this.digits;
     var str = "";
     for (let i = 0; i < detail.length; i++) {
       const element = detail[i];
-      str += "[" + element[0].toFixed(0) + "," + element[1].toFixed(0) + "]";
+      str +=
+        "[" + element[0].format(digits) + "," + element[1].format(digits) + "]";
     }
     return str;
   }

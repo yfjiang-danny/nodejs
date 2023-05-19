@@ -1,6 +1,6 @@
 /**
  * @description 贷款计算器
- * @author yfjiang.danny@outlook.com
+ * @author yfjiang.danny
  */
 /**
  * [monthlyPay, leftLoan, interest]
@@ -23,6 +23,7 @@ declare class LoanCalculator {
     protected monthlyPay: number;
     protected detail: DetailList;
     private detailMap;
+    digits: number;
     constructor();
     /**
      * 初始化
@@ -30,8 +31,19 @@ declare class LoanCalculator {
      * @param {number} yRate 年利率
      * @param {number} year 贷款年限
      * @param {LoanType} type 还款类型，1-等额本息，2-等额本金
+     * @param {number} digits 保留小数位，默认 0
      */
-    init(total?: number, yRate?: number, year?: number, type?: LoanType): void;
+    init(total?: number, yRate?: number, year?: number, type?: LoanType, digits?: number): void;
+    /**
+     * 计算等额本息月供、剩余贷款、利息
+     * @returns {DetailList}
+     */
+    protected calculateInType1(): DetailList;
+    /**
+     * 计算等额本金月供、剩余贷款、利息
+     * @returns {DetailList}
+     */
+    protected calculateInType2(): DetailList;
     /**
      * 计算贷款详细信息
      */
@@ -61,20 +73,16 @@ declare class LoanCalculator {
      */
     private checkInitial;
     /**
-     * 获取等额本息的利息
+     * 获取利息
      * @param {number} month n 月后产生的总利息，默认总利息
      */
-    getInterest(month?: number): number | undefined;
+    getInterest(month?: number): number;
     /**
-     * 计算等额本息月供、剩余贷款、利息
-     * @returns {DetailList}
+     * 获取第 n 个月的月供
+     * @param month 月份
+     * @returns
      */
-    protected calculateInType1(): DetailList;
-    /**
-     * 计算等额本金月供、剩余贷款、利息
-     * @returns {DetailList}
-     */
-    protected calculateInType2(): DetailList;
+    getMonthlyPay(month: number): number;
     /**
      * @description 获取还款信息
      * @returns 还款列表
