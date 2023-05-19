@@ -25,4 +25,5 @@ instance.init(100000, 0.037, 10);
 | getInterest   | 获取利息                         |
 | getMonthlyPay | 获取第 n 个月的月供              |
 | getLoan       | 第 n 个月后剩余贷款              |
+| getDetail     | 获取还款信息                     |
 | toString      | 输出字符串                       |
