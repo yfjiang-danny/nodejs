@@ -1,0 +1,1 @@
+var u;(x=>{function t(e,n,r){return e/n/(r*100)}x.PEG=t;function p(e,n,r){return e/(n+n*r)}x.nextPE=p;function m(e,n,r){return(r*100*n-e)/e}x.amplitude=m;function o(e,n,r,b){return b*m(e,n,r)}x.priceAmplitude=o})(u||(u={}));export{u as StockCalculator};
